@@ -4,6 +4,7 @@ import logging
 from typing import Dict, Any
 from telegram import Update
 from telegram.ext import CallbackContext
+from telegram.helpers import escape_markdown
 
 logger = logging.getLogger(__name__)
 
@@ -39,22 +40,36 @@ async def delete_prev_messages(update: Update, context: CallbackContext):
 
 
 async def send_processed_result(update: Update, result: Dict[str, Any], task_name: str):
-    """Send formatted processing result"""
-    base_caption = (
-        f"📸 *{task_name} Result*\n\n"
-        f"{result['detection_summary']}\n\n"
-        f"🧠 *Model:* {result.get('model_name', 'Unknown')}"
-    )
+    """Send formatted processing result with safe Markdown"""
+    try:
+        # Escape user-generated content
+        safe_task = escape_markdown(task_name, version=2)
+        safe_summary = escape_markdown(result["detection_summary"], version=2)
+        safe_model = escape_markdown(result.get("model_name", "Unknown"), version=2)
 
-    # Add speed stats if available
-    if "speed_summary" in result:
-        base_caption += f"\n\n{result['speed_summary']}"
+        base_caption = (
+            f"📸 *{safe_task} Result*\n\n"
+            f"{safe_summary}\n\n"
+            f"🧠 *Model:* {safe_model}"
+        )
 
-    with open(result["image_path"], "rb") as photo_file:
-        await update.message.reply_photo(
-            photo=photo_file,
-            caption=base_caption,
-            parse_mode="Markdown",
+        # Add speed stats if available
+        if "speed_summary" in result:
+            safe_speed = escape_markdown(result["speed_summary"], version=2)
+            base_caption += f"\n\n{safe_speed}"
+
+        with open(result["image_path"], "rb") as photo_file:
+            await update.message.reply_photo(
+                photo=photo_file,
+                caption=base_caption,
+                parse_mode="MarkdownV2",
+                reply_to_message_id=update.message.message_id,
+            )
+
+    except Exception as e:
+        logger.error(f"Failed to send result: {e}")
+        await update.message.reply_text(
+            "✅ Processing complete! (Couldn't format results)",
             reply_to_message_id=update.message.message_id,
         )
 
