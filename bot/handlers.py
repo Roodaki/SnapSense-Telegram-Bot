@@ -74,15 +74,16 @@ async def photo_handler(update: Update, context: CallbackContext):
         image_id = str(update.message.message_id)
         image_folder = os.path.join("database", image_id)
         os.makedirs(image_folder, exist_ok=True)
-
         original_image_path = os.path.join(image_folder, f"{image_id}.jpg")
         await file.download_to_drive(original_image_path)
 
         # Process the image based on the selected task
         if task == "object_detection":
-            processed_image_path = await object_detection.process_image(
+            result_data = await object_detection.process_image(
                 original_image_path, image_folder, image_id
             )
+            # result_data is a dict with keys: "image_path", "detection_summary", "speed_summary"
+
             # Delete the previous intermediary message before sending a new one
             await delete_prev_intermediary(update, context)
             comp_message = await update.message.reply_text(
@@ -91,12 +92,23 @@ async def photo_handler(update: Update, context: CallbackContext):
             )
             context.user_data["prev_message"] = comp_message.message_id
 
-            with open(processed_image_path, "rb") as f:
+            # Prepare an improved caption with detection summary and speed stats
+            caption = (
+                "📸 *Object Detection Result*\n\n"
+                "🧠 *Model:* YOLOv11x\n\n"
+                "🔍 *Detected Objects:*\n"
+                f"{result_data['detection_summary']}\n\n"
+                f"{result_data['speed_summary']}"
+            )
+            with open(result_data["image_path"], "rb") as f:
                 await update.message.reply_photo(
-                    photo=f, reply_to_message_id=update.message.message_id
+                    photo=f,
+                    reply_to_message_id=update.message.message_id,
+                    caption=caption,
+                    parse_mode="Markdown",
                 )
 
-        # Clear task data
+        # Clear task data so the next photo requires a task selection
         context.user_data["task"] = None
 
         # Delete any intermediary message before showing the main menu
