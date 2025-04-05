@@ -1,69 +1,98 @@
 import os
+import torch
+import asyncio
+from pathlib import Path
 from collections import Counter
 from ultralytics import YOLO
+from typing import Dict, Any
 
 
-async def process_image(original_image_path, image_folder, image_id):
-    # Create a subfolder for object detection results
-    detection_folder = os.path.join(image_folder, "object_detection")
-    os.makedirs(detection_folder, exist_ok=True)
+def initialize_model() -> Dict[str, Any]:
+    """Initialize model once during startup"""
+    try:
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        model_path = Path("./models/object_detection/yolo11x.pt")
 
-    # Load the YOLO model (consider caching outside for performance)
-    model = YOLO("./models/object_detection/yolo11x.pt")
+        if not model_path.exists():
+            raise FileNotFoundError(f"Model file not found at {model_path}")
 
-    # Run object detection and get results
-    results = model(
-        original_image_path,
-        conf=0.3,
-        iou=0.4,
-        augment=True,
-        device="cuda",
-        imgsz=640,
-        half=True,
-        save=True,
-        project=image_folder,
-        name="object_detection",
-        exist_ok=True,
-    )
+        model = YOLO(model_path)
+        return {
+            "model": model,
+            "device": device,
+            "half": device == "cuda",
+            "model_name": "YOLOv11x",
+        }
+    except Exception as e:
+        raise RuntimeError(f"Model initialization failed: {e}") from e
 
-    result = results[0]
 
-    # Extract detected class names
-    class_ids = result.boxes.cls.tolist() if result.boxes is not None else []
-    class_names = [model.names[int(cls_id)] for cls_id in class_ids]
-    class_counts = Counter(class_names)
+async def process_image(
+    original_path: str, output_folder: str, image_id: str, model_data: Dict[str, Any]
+) -> Dict[str, Any]:
+    """Process image with proper async handling"""
+    try:
+        detection_folder = Path(output_folder) / "object_detection"
+        detection_folder.mkdir(exist_ok=True)
 
-    # Format detected classes
-    detection_summary = (
-        "\n".join([f"🔹 {name}: {count}" for name, count in class_counts.items()])
-        if class_counts
-        else "No objects detected."
-    )
+        # Run inference in executor
+        loop = asyncio.get_event_loop()
+        results = await loop.run_in_executor(
+            None,
+            lambda: model_data["model"](
+                original_path,
+                conf=0.3,
+                iou=0.4,
+                augment=True,
+                device=model_data["device"],
+                half=model_data["half"],
+                save=True,
+                project=str(output_folder),
+                name="object_detection",
+                exist_ok=True,
+            ),
+        )
 
-    # Extract speed stats (in milliseconds)
-    speed_stats = (
-        result.speed
-    )  # dict with keys: 'preprocess', 'inference', 'postprocess'
+        result = results[0]
+        return await _format_results(result, model_data)
 
-    # Format speed info
-    speed_summary = (
-        f"⚙️ *Speed Stats (ms)*\n"
-        f"• Preprocessing: `{speed_stats['preprocess']:.2f}`\n"
-        f"• Inference: `{speed_stats['inference']:.2f}`\n"
-        f"• Postprocessing: `{speed_stats['postprocess']:.2f}`"
-    )
+    except Exception as e:
+        raise RuntimeError(f"Image processing failed: {e}") from e
 
-    # Locate the saved processed image
-    saved_images = [
-        fname for fname in os.listdir(detection_folder) if fname.endswith(".jpg")
-    ]
-    if not saved_images:
-        raise Exception("No processed image was found after running detection.")
 
-    processed_image_path = os.path.join(detection_folder, saved_images[0])
+async def _format_results(result, model_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Format detection results"""
+    try:
+        # Detection summary
+        class_counts = Counter(result.names[int(cls)] for cls in result.boxes.cls)
+        detection_summary = (
+            "\n".join(f"🔹 {name}: {count}" for name, count in class_counts.items())
+            if class_counts
+            else "No objects detected."
+        )
 
-    return {
-        "image_path": processed_image_path,
-        "detection_summary": detection_summary,
-        "speed_summary": speed_summary,
-    }
+        # Speed statistics
+        speed = result.speed
+        speed_summary = (
+            f"⚙️ *Speed Stats (ms)*\n"
+            f"• Preprocessing: `{speed['preprocess']:.2f}`\n"
+            f"• Inference: `{speed['inference']:.2f}`\n"
+            f"• Postprocessing: `{speed['postprocess']:.2f}`"
+        )
+
+        # Path handling with validation
+        processed_path = Path(result.save_dir) / Path(result.path).name
+        if not processed_path.exists():
+            raise FileNotFoundError(f"Processed image not found at {processed_path}")
+
+        return {
+            "image_path": str(processed_path),
+            "detection_summary": detection_summary,
+            "speed_summary": speed_summary,
+            "model_name": model_data["model_name"],
+        }
+
+    except AttributeError as e:
+        raise RuntimeError(f"Result formatting error: {e}") from e
+    except KeyError as e:
+        raise RuntimeError(f"Missing expected result data: {e}") from e
