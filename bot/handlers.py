@@ -11,6 +11,7 @@ from telegram.ext import (
 from bot import keyboards, utils
 from models.object_detection import object_detection
 from collections.abc import Coroutine
+from models.nudity_detection import nudity_detection
 
 
 async def start_handler(update: Update, context: CallbackContext):
@@ -28,7 +29,6 @@ async def start_handler(update: Update, context: CallbackContext):
 
 
 async def button_handler(update: Update, context: CallbackContext):
-    """Handle inline button selections"""
     try:
         query = update.callback_query
         await query.answer()
@@ -40,11 +40,18 @@ async def button_handler(update: Update, context: CallbackContext):
                     "task_message": "Object Detection | YOLOv11x",
                 }
             )
-
-            edited_msg = await query.edit_message_text(
-                text=f"🎯 You selected {context.user_data['task_message']}. Please send a photo to proceed."
+        elif query.data == "nudity_detection":
+            context.user_data.update(
+                {
+                    "task": "nudity_detection",
+                    "task_message": "Nudity Detection | NudeNet v2.0",
+                }
             )
-            context.user_data["prev_message"] = edited_msg.message_id
+
+        edited_msg = await query.edit_message_text(
+            text=f"🎯 You selected {context.user_data['task_message']}. Please send a photo to proceed."
+        )
+        context.user_data["prev_message"] = edited_msg.message_id
 
     except Exception as e:
         utils.logger.error(f"Button handler error: {e}")
@@ -79,13 +86,21 @@ async def photo_handler(update: Update, context: CallbackContext):
         original_path = os.path.join(image_folder, f"original_{image_id}.jpg")
         await photo_file.download_to_drive(original_path)
 
-        # Process image
-        result = await object_detection.process_image(
-            original_path,
-            image_folder,
-            image_id,
-            context.model_data,  # Access through custom context property
-        )
+        # Process image based on task
+        if task == "object_detection":
+            result = await object_detection.process_image(
+                original_path,
+                image_folder,
+                image_id,
+                context.bot_data["object_detection"],
+            )
+        elif task == "nudity_detection":
+            result = await nudity_detection.process_image(
+                original_path,
+                image_folder,
+                image_id,
+                context.bot_data["nudity_detection"],
+            )
 
         # Send results
         await utils.send_processed_result(

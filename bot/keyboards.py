@@ -9,7 +9,10 @@ def main_menu():
             [
                 InlineKeyboardButton(
                     "🔍 Object Detection", callback_data="object_detection"
-                )
+                ),
+                InlineKeyboardButton(
+                    "🚫 Nudity Detection", callback_data="nudity_detection"
+                ),
             ],
             [InlineKeyboardButton("ℹ️ Help", callback_data="help")],
         ]

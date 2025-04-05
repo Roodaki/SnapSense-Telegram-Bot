@@ -40,16 +40,20 @@ async def delete_prev_messages(update: Update, context: CallbackContext):
 
 async def send_processed_result(update: Update, result: Dict[str, Any], task_name: str):
     """Send formatted processing result"""
-    caption = (
+    base_caption = (
         f"📸 *{task_name} Result*\n\n"
-        f"🔍 *Detected Objects:*\n{result['detection_summary']}\n\n"
-        f"{result['speed_summary']}"
+        f"{result['detection_summary']}\n\n"
+        f"🧠 *Model:* {result.get('model_name', 'Unknown')}"
     )
+
+    # Add speed stats if available
+    if "speed_summary" in result:
+        base_caption += f"\n\n{result['speed_summary']}"
 
     with open(result["image_path"], "rb") as photo_file:
         await update.message.reply_photo(
             photo=photo_file,
-            caption=caption,
+            caption=base_caption,
             parse_mode="Markdown",
             reply_to_message_id=update.message.message_id,
         )

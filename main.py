@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from telegram.ext import Application, ContextTypes
 from bot import handlers, utils
 from models.object_detection import object_detection
+from models.nudity_detection import nudity_detection
 
 # Initialize logging
 logging.basicConfig(
@@ -30,8 +31,9 @@ def main():
 
         utils.clean_database()
 
-        # Initialize model during startup
-        model_data = object_detection.initialize_model()
+        # Initialize both models
+        object_model = object_detection.initialize_model()
+        nudity_detector = nudity_detection.initialize_detector()
 
         # Create application with custom context
         context_types = ContextTypes(context=CustomContext)
@@ -43,8 +45,9 @@ def main():
             .build()
         )
 
-        # Store model in bot_data
-        app.bot_data["model_data"] = model_data
+        # Store both models
+        app.bot_data["object_detection"] = object_model
+        app.bot_data["nudity_detection"] = nudity_detector
 
         handlers.register_handlers(app)
 
