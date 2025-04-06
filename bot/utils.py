@@ -74,6 +74,37 @@ async def send_processed_result(update: Update, result: Dict[str, Any], task_nam
         )
 
 
+async def send_text_result(update: Update, result: Dict[str, Any], task_name: str):
+    """Send formatted text extraction result"""
+    try:
+        text = result.get("text", "No text could be extracted")
+        safe_text = escape_markdown(text, version=2)
+        safe_task = escape_markdown(task_name, version=2)
+
+        message = (
+            f"📝 *{safe_task} Result*\n\n"
+            f"```\n{safe_text}\n```\n\n"
+            f"🧠 *OCR Engine:* {escape_markdown(result.get('model_name', 'Unknown'), version=2)}"
+        )
+
+        # Split long text (>4096 characters)
+        if len(message) > 4096:
+            message = message[:4000] + "\n... (truncated)"
+
+        await update.message.reply_text(
+            message,
+            parse_mode="MarkdownV2",
+            reply_to_message_id=update.message.message_id,
+        )
+
+    except Exception as e:
+        logger.error(f"Text result error: {e}")
+        await update.message.reply_text(
+            "✅ Text extracted! (Formatting failed)",
+            reply_to_message_id=update.message.message_id,
+        )
+
+
 async def cleanup_operation(update: Update, context: CallbackContext):
     """Cleanup resources and user state"""
     try:

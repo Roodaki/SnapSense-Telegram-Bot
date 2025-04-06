@@ -14,6 +14,11 @@ def main_menu():
                     "🚫 Nudity Detection", callback_data="nudity_detection"
                 ),
             ],
+            [
+                InlineKeyboardButton(
+                    "📝 Text Extraction", callback_data="text_extraction"
+                )
+            ],
             [InlineKeyboardButton("ℹ️ Help", callback_data="help")],
         ]
     )

@@ -10,8 +10,8 @@ from telegram.ext import (
 )
 from bot import keyboards, utils
 from models.object_detection import object_detection
-from collections.abc import Coroutine
 from models.nudity_detection import nudity_detection
+from models.text_extraction import text_extraction
 
 
 async def start_handler(update: Update, context: CallbackContext):
@@ -45,6 +45,13 @@ async def button_handler(update: Update, context: CallbackContext):
                 {
                     "task": "nudity_detection",
                     "task_message": "Nudity Detection | NudeNet v2.0",
+                }
+            )
+        elif query.data == "text_extraction":
+            context.user_data.update(
+                {
+                    "task": "text_extraction",
+                    "task_message": "Text Extraction | Tesseract OCR",
                 }
             )
 
@@ -101,11 +108,20 @@ async def photo_handler(update: Update, context: CallbackContext):
                 image_id,
                 context.bot_data["nudity_detection"],
             )
+        elif task == "text_extraction":
+            result = await text_extraction.process_image(
+                original_path, image_folder, image_id
+            )
 
-        # Send results
-        await utils.send_processed_result(
-            update, result, context.user_data["task_message"]
-        )
+        # Handle text vs image results
+        if task == "text_extraction":
+            await utils.send_text_result(
+                update, result, context.user_data["task_message"]
+            )
+        else:
+            await utils.send_processed_result(
+                update, result, context.user_data["task_message"]
+            )
 
         # Cleanup and reset state
         await utils.cleanup_operation(update, context)
