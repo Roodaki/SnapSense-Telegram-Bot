@@ -17,9 +17,11 @@ def main_menu():
             [
                 InlineKeyboardButton(
                     "📝 Text Extraction", callback_data="text_extraction"
-                )
+                ),
+                InlineKeyboardButton(
+                    "🎭 Background Removal", callback_data="background_removal"
+                ),
             ],
-            [InlineKeyboardButton("ℹ️ Help", callback_data="help")],
         ]
     )
 

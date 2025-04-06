@@ -42,16 +42,15 @@ async def delete_prev_messages(update: Update, context: CallbackContext):
 async def send_processed_result(update: Update, result: Dict[str, Any], task_name: str):
     """Send formatted processing result with safe Markdown"""
     try:
-        # Escape user-generated content
         safe_task = escape_markdown(task_name, version=2)
-        safe_summary = escape_markdown(result["detection_summary"], version=2)
         safe_model = escape_markdown(result.get("model_name", "Unknown"), version=2)
 
-        base_caption = (
-            f"📸 *{safe_task} Result*\n\n"
-            f"{safe_summary}\n\n"
-            f"🧠 *Model:* {safe_model}"
-        )
+        base_caption = f"📸 *{safe_task} Result*\n\n" f"🧠 *Model:* {safe_model}"
+
+        # Add detection summary if available
+        if "detection_summary" in result:
+            safe_summary = escape_markdown(result["detection_summary"], version=2)
+            base_caption = f"{base_caption}\n\n{safe_summary}"
 
         # Add speed stats if available
         if "speed_summary" in result:

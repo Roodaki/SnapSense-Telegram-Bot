@@ -12,6 +12,7 @@ from bot import keyboards, utils
 from models.object_detection import object_detection
 from models.nudity_detection import nudity_detection
 from models.text_extraction import text_extraction
+from models.background_removal import background_removal
 
 
 async def start_handler(update: Update, context: CallbackContext):
@@ -52,6 +53,13 @@ async def button_handler(update: Update, context: CallbackContext):
                 {
                     "task": "text_extraction",
                     "task_message": "Text Extraction | Tesseract OCR",
+                }
+            )
+        elif query.data == "background_removal":
+            context.user_data.update(
+                {
+                    "task": "background_removal",
+                    "task_message": "Background Removal | Rembg",
                 }
             )
 
@@ -110,6 +118,10 @@ async def photo_handler(update: Update, context: CallbackContext):
             )
         elif task == "text_extraction":
             result = await text_extraction.process_image(
+                original_path, image_folder, image_id
+            )
+        elif task == "background_removal":
+            result = await background_removal.process_image(
                 original_path, image_folder, image_id
             )
 
