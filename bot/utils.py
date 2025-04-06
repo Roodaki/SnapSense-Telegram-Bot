@@ -73,6 +73,44 @@ async def send_processed_result(update: Update, result: Dict[str, Any], task_nam
         )
 
 
+async def send_emotion_result(update: Update, result: Dict[str, Any], task_name: str):
+    """Send formatted emotion analysis result"""
+    try:
+        safe_task = escape_markdown(task_name, version=2)
+        faces = result["faces_detected"]
+        base_msg = f"😃 *{safe_task} Result*\n\n"
+
+        if faces == 0:
+            base_msg += "No faces detected in the image"
+        else:
+            base_msg += f"Detected {faces} face{'s' if faces >1 else ''}:\n\n"
+
+            for idx, emotion in enumerate(result["emotions"], 1):
+                base_msg += (
+                    f"*Face {idx}:*\n"
+                    f"🎭 Dominant Emotion: {escape_markdown(emotion['dominant'], version=2)}\n"
+                )
+
+                # Format emotion scores
+                scores = "\n".join(
+                    f"{k}: {v:.1f}%" for k, v in emotion["scores"].items()
+                )
+                base_msg += f"```\n{scores}\n```\n\n"
+
+        await update.message.reply_text(
+            base_msg,
+            parse_mode="MarkdownV2",
+            reply_to_message_id=update.message.message_id,
+        )
+
+    except Exception as e:
+        logger.error(f"Emotion result error: {e}")
+        await update.message.reply_text(
+            "✅ Emotion analysis complete! (Formatting failed)",
+            reply_to_message_id=update.message.message_id,
+        )
+
+
 async def send_text_result(update: Update, result: Dict[str, Any], task_name: str):
     """Send formatted text extraction result"""
     try:

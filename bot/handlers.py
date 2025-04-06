@@ -13,6 +13,7 @@ from models.object_detection import object_detection
 from models.nudity_detection import nudity_detection
 from models.text_extraction import text_extraction
 from models.background_removal import background_removal
+from models.emotion_recognition import emotion_recognition
 
 
 async def start_handler(update: Update, context: CallbackContext):
@@ -60,6 +61,13 @@ async def button_handler(update: Update, context: CallbackContext):
                 {
                     "task": "background_removal",
                     "task_message": "Background Removal | Rembg",
+                }
+            )
+        elif query.data == "emotion_recognition":
+            context.user_data.update(
+                {
+                    "task": "emotion_recognition",
+                    "task_message": "Emotion Recognition | DeepFace",
                 }
             )
 
@@ -124,10 +132,18 @@ async def photo_handler(update: Update, context: CallbackContext):
             result = await background_removal.process_image(
                 original_path, image_folder, image_id
             )
+        elif task == "emotion_recognition":
+            result = await emotion_recognition.process_image(
+                original_path, image_folder, image_id
+            )
 
-        # Handle text vs image results
+        # Handle different result types
         if task == "text_extraction":
             await utils.send_text_result(
+                update, result, context.user_data["task_message"]
+            )
+        elif task == "emotion_recognition":
+            await utils.send_emotion_result(
                 update, result, context.user_data["task_message"]
             )
         else:

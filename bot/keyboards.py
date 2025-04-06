@@ -11,17 +11,23 @@ def main_menu():
                     "🔍 Object Detection", callback_data="object_detection"
                 ),
                 InlineKeyboardButton(
-                    "🚫 Nudity Detection", callback_data="nudity_detection"
+                    "😃 Emotion Recognition", callback_data="emotion_recognition"
                 ),
             ],
             [
                 InlineKeyboardButton(
-                    "📝 Text Extraction", callback_data="text_extraction"
+                    "🚫 Nudity Detection", callback_data="nudity_detection"
                 ),
                 InlineKeyboardButton(
-                    "🎭 Background Removal", callback_data="background_removal"
+                    "📝 Text Extraction", callback_data="text_extraction"
                 ),
             ],
+            [
+                InlineKeyboardButton(
+                    "🎭 Background Removal", callback_data="background_removal"
+                )
+            ],
+            [InlineKeyboardButton("ℹ️ Help", callback_data="help")],
         ]
     )
 
