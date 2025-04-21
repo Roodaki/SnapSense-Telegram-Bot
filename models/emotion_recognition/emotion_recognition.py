@@ -2,20 +2,17 @@ import asyncio
 from pathlib import Path
 from typing import Dict, Any
 from deepface import DeepFace
-import cv2
+from bot.strings import Strings
 
 
 async def process_image(
-    original_path: str,
-    output_folder: str,
-    image_id: str,
+    original_path: str, output_folder: str, image_id: str
 ) -> Dict[str, Any]:
     """Process image for emotion analysis"""
     try:
         emotion_folder = Path(output_folder) / "emotion_recognition"
         emotion_folder.mkdir(exist_ok=True)
 
-        # Run emotion analysis in executor
         loop = asyncio.get_event_loop()
         results = await loop.run_in_executor(
             None,
@@ -28,7 +25,6 @@ async def process_image(
             ),
         )
 
-        # Process multiple faces
         emotions = []
         for face in results:
             emotions.append(
@@ -41,17 +37,20 @@ async def process_image(
 
         return {
             "emotions": emotions,
-            "model_name": "DeepFace Emotion",
+            "model_name": Strings.MODEL_NAMES["emotion_recognition"],
             "faces_detected": len(results),
         }
-
     except ValueError as e:
         if "No face detected" in str(e):
             return {
                 "emotions": [],
-                "model_name": "DeepFace Emotion",
+                "model_name": Strings.MODEL_NAMES["emotion_recognition"],
                 "faces_detected": 0,
             }
-        raise RuntimeError(f"Emotion analysis failed: {e}") from e
+        raise RuntimeError(
+            Strings.PROCESSING_ERROR.format("emotion recognition")
+        ) from e
     except Exception as e:
-        raise RuntimeError(f"Emotion processing error: {e}") from e
+        raise RuntimeError(
+            Strings.PROCESSING_ERROR.format("emotion recognition")
+        ) from e

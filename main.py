@@ -1,7 +1,7 @@
 import os
 import logging
 from dotenv import load_dotenv
-from telegram.ext import Application, ContextTypes
+from telegram.ext import Application
 from bot import handlers, utils
 from models.object_detection import object_detection
 from models.nudity_detection import nudity_detection
@@ -11,13 +11,6 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
 logger = logging.getLogger(__name__)
-
-
-# Simplified custom context without overriding __init__
-class CustomContext(ContextTypes.DEFAULT_TYPE):
-    @property
-    def model_data(self):
-        return self.application.bot_data.get("model_data")
 
 
 def main():
@@ -31,21 +24,16 @@ def main():
 
         utils.clean_database()
 
-        # Initialize both models
+        # Initialize models
         object_model = object_detection.initialize_model()
         nudity_detector = nudity_detection.initialize_detector()
 
-        # Create application with custom context
-        context_types = ContextTypes(context=CustomContext)
+        # Create application
         app = (
-            Application.builder()
-            .token(TELEGRAM_BOT_TOKEN)
-            .post_init(post_init)
-            .context_types(context_types)
-            .build()
+            Application.builder().token(TELEGRAM_BOT_TOKEN).post_init(post_init).build()
         )
 
-        # Store both models
+        # Store models
         app.bot_data["object_detection"] = object_model
         app.bot_data["nudity_detection"] = nudity_detector
 
@@ -61,9 +49,9 @@ def main():
 
 async def post_init(app: Application):
     """Post-initialization tasks"""
-    await app.bot.set_my_commands(
-        [("start", "Start the bot"), ("cancel", "Cancel current operation")]
-    )
+    from bot.strings import Strings
+
+    await app.bot.set_my_commands(Strings.COMMANDS)
 
 
 if __name__ == "__main__":

@@ -1,10 +1,10 @@
 import os
 import shutil
 import logging
-from typing import Dict, Any
 from telegram import Update
 from telegram.ext import CallbackContext
 from telegram.helpers import escape_markdown
+from bot.strings import Strings
 
 logger = logging.getLogger(__name__)
 
@@ -39,20 +39,19 @@ async def delete_prev_messages(update: Update, context: CallbackContext):
         logger.warning(f"Message deletion failed: {e}")
 
 
-async def send_processed_result(update: Update, result: Dict[str, Any], task_name: str):
-    """Send formatted processing result with safe Markdown"""
+async def send_processed_result(update: Update, result: dict, task_name: str):
+    """Send formatted processing result"""
     try:
         safe_task = escape_markdown(task_name, version=2)
         safe_model = escape_markdown(result.get("model_name", "Unknown"), version=2)
 
-        base_caption = f"📸 *{safe_task} Result*\n\n" f"🧠 *Model:* {safe_model}"
+        base_caption = Strings.RESULT_HEADER.format(safe_task)
+        base_caption += Strings.MODEL_INFO.format(safe_model)
 
-        # Add detection summary if available
         if "detection_summary" in result:
             safe_summary = escape_markdown(result["detection_summary"], version=2)
-            base_caption = f"{base_caption}\n\n{safe_summary}"
+            base_caption += f"\n\n{safe_summary}"
 
-        # Add speed stats if available
         if "speed_summary" in result:
             safe_speed = escape_markdown(result["speed_summary"], version=2)
             base_caption += f"\n\n{safe_speed}"
@@ -67,35 +66,30 @@ async def send_processed_result(update: Update, result: Dict[str, Any], task_nam
 
     except Exception as e:
         logger.error(f"Failed to send result: {e}")
-        await update.message.reply_text(
-            "✅ Processing complete! (Couldn't format results)",
-            reply_to_message_id=update.message.message_id,
-        )
+        await update.message.reply_text(Strings.GENERIC_ERROR)
 
 
-async def send_emotion_result(update: Update, result: Dict[str, Any], task_name: str):
+async def send_emotion_result(update: Update, result: dict, task_name: str):
     """Send formatted emotion analysis result"""
     try:
         safe_task = escape_markdown(task_name, version=2)
         faces = result["faces_detected"]
-        base_msg = f"😃 *{safe_task} Result*\n\n"
+        base_msg = Strings.EMOTION_HEADER.format(safe_task)
 
         if faces == 0:
             base_msg += "No faces detected in the image"
         else:
-            base_msg += f"Detected {faces} face{'s' if faces >1 else ''}:\n\n"
+            base_msg += Strings.FACES_DETECTED.format(faces, "s" if faces > 1 else "")
 
             for idx, emotion in enumerate(result["emotions"], 1):
-                base_msg += (
-                    f"*Face {idx}:*\n"
-                    f"🎭 Dominant Emotion: {escape_markdown(emotion['dominant'], version=2)}\n"
-                )
-
-                # Format emotion scores
                 scores = "\n".join(
                     f"{k}: {v:.1f}%" for k, v in emotion["scores"].items()
                 )
-                base_msg += f"```\n{scores}\n```\n\n"
+                base_msg += Strings.EMOTION_FORMAT.format(
+                    idx,
+                    escape_markdown(emotion["dominant"], version=2),
+                    escape_markdown(scores, version=2),
+                )
 
         await update.message.reply_text(
             base_msg,
@@ -105,26 +99,19 @@ async def send_emotion_result(update: Update, result: Dict[str, Any], task_name:
 
     except Exception as e:
         logger.error(f"Emotion result error: {e}")
-        await update.message.reply_text(
-            "✅ Emotion analysis complete! (Formatting failed)",
-            reply_to_message_id=update.message.message_id,
-        )
+        await update.message.reply_text(Strings.GENERIC_ERROR)
 
 
-async def send_text_result(update: Update, result: Dict[str, Any], task_name: str):
+async def send_text_result(update: Update, result: dict, task_name: str):
     """Send formatted text extraction result"""
     try:
         text = result.get("text", "No text could be extracted")
         safe_text = escape_markdown(text, version=2)
         safe_task = escape_markdown(task_name, version=2)
+        safe_model = escape_markdown(result.get("model_name", "Unknown"), version=2)
 
-        message = (
-            f"📝 *{safe_task} Result*\n\n"
-            f"```\n{safe_text}\n```\n\n"
-            f"🧠 *OCR Engine:* {escape_markdown(result.get('model_name', 'Unknown'), version=2)}"
-        )
+        message = Strings.TEXT_RESULT.format(safe_task, safe_text, safe_model)
 
-        # Split long text (>4096 characters)
         if len(message) > 4096:
             message = message[:4000] + "\n... (truncated)"
 
@@ -136,10 +123,7 @@ async def send_text_result(update: Update, result: Dict[str, Any], task_name: st
 
     except Exception as e:
         logger.error(f"Text result error: {e}")
-        await update.message.reply_text(
-            "✅ Text extracted! (Formatting failed)",
-            reply_to_message_id=update.message.message_id,
-        )
+        await update.message.reply_text(Strings.GENERIC_ERROR)
 
 
 async def cleanup_operation(update: Update, context: CallbackContext):

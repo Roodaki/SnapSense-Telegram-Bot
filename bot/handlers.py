@@ -9,6 +9,7 @@ from telegram.ext import (
     CallbackContext,
 )
 from bot import keyboards, utils
+from bot.strings import Strings
 from models.object_detection import object_detection
 from models.nudity_detection import nudity_detection
 from models.text_extraction import text_extraction
@@ -22,7 +23,7 @@ async def start_handler(update: Update, context: CallbackContext):
         context.user_data.clear()
         keyboard = keyboards.main_menu()
         sent_msg = await update.message.reply_text(
-            "📸 Welcome to SnapSense! Choose an option below:", reply_markup=keyboard
+            Strings.START_MESSAGE, reply_markup=keyboard
         )
         context.user_data["prev_message"] = sent_msg.message_id
     except Exception as e:
@@ -34,47 +35,16 @@ async def button_handler(update: Update, context: CallbackContext):
     try:
         query = update.callback_query
         await query.answer()
+        task_id = query.data
 
-        if query.data == "object_detection":
-            context.user_data.update(
-                {
-                    "task": "object_detection",
-                    "task_message": "Object Detection | YOLOv11x",
-                }
-            )
-        elif query.data == "nudity_detection":
-            context.user_data.update(
-                {
-                    "task": "nudity_detection",
-                    "task_message": "Nudity Detection | NudeNet v2.0",
-                }
-            )
-        elif query.data == "text_extraction":
-            context.user_data.update(
-                {
-                    "task": "text_extraction",
-                    "task_message": "Text Extraction | Tesseract OCR",
-                }
-            )
-        elif query.data == "background_removal":
-            context.user_data.update(
-                {
-                    "task": "background_removal",
-                    "task_message": "Background Removal | Rembg",
-                }
-            )
-        elif query.data == "emotion_recognition":
-            context.user_data.update(
-                {
-                    "task": "emotion_recognition",
-                    "task_message": "Emotion Recognition | DeepFace",
-                }
-            )
+        if task_id in Strings.MENU_ITEMS:
+            _, _, task_message = Strings.MENU_ITEMS[task_id]
+            context.user_data.update({"task": task_id, "task_message": task_message})
 
-        edited_msg = await query.edit_message_text(
-            text=f"🎯 You selected {context.user_data['task_message']}. Please send a photo to proceed."
-        )
-        context.user_data["prev_message"] = edited_msg.message_id
+            edited_msg = await query.edit_message_text(
+                text=Strings.TASK_SELECTION.format(task_message)
+            )
+            context.user_data["prev_message"] = edited_msg.message_id
 
     except Exception as e:
         utils.logger.error(f"Button handler error: {e}")
@@ -84,20 +54,16 @@ async def button_handler(update: Update, context: CallbackContext):
 async def photo_handler(update: Update, context: CallbackContext):
     """Handle photo processing with state management"""
     try:
-        # State validation
         if not (task := context.user_data.get("task")):
             await update.message.reply_text(
-                "⚠️ Please select a task from the menu first using /start.",
+                Strings.INVALID_TASK_STATE,
                 reply_to_message_id=update.message.message_id,
             )
             return
 
-        # Cleanup previous messages
         await utils.delete_prev_messages(update, context)
-
-        # Acknowledge photo receipt
         ack_message = await update.message.reply_text(
-            "⏳ Processing your photo...", reply_to_message_id=update.message.message_id
+            Strings.PROCESSING, reply_to_message_id=update.message.message_id
         )
         context.user_data["prev_message"] = ack_message.message_id
 
@@ -105,24 +71,19 @@ async def photo_handler(update: Update, context: CallbackContext):
         photo_file = await update.message.photo[-1].get_file()
         image_id = str(update.message.message_id)
         image_folder = utils.create_image_folder(image_id)
-
         original_path = os.path.join(image_folder, f"original_{image_id}.jpg")
         await photo_file.download_to_drive(original_path)
 
-        # Process image based on task
-        if task == "object_detection":
-            result = await object_detection.process_image(
-                original_path,
-                image_folder,
-                image_id,
-                context.bot_data["object_detection"],
-            )
-        elif task == "nudity_detection":
-            result = await nudity_detection.process_image(
-                original_path,
-                image_folder,
-                image_id,
-                context.bot_data["nudity_detection"],
+        # Process image
+        model_map = {
+            "object_detection": (object_detection.process_image, "object_detection"),
+            "nudity_detection": (nudity_detection.process_image, "nudity_detection"),
+        }
+
+        if task in model_map:
+            processor, model_key = model_map[task]
+            result = await processor(
+                original_path, image_folder, image_id, context.bot_data[model_key]
             )
         elif task == "text_extraction":
             result = await text_extraction.process_image(
@@ -137,13 +98,14 @@ async def photo_handler(update: Update, context: CallbackContext):
                 original_path, image_folder, image_id
             )
 
-        # Handle different result types
-        if task == "text_extraction":
-            await utils.send_text_result(
-                update, result, context.user_data["task_message"]
-            )
-        elif task == "emotion_recognition":
-            await utils.send_emotion_result(
+        # Handle results
+        result_handlers = {
+            "text_extraction": utils.send_text_result,
+            "emotion_recognition": utils.send_emotion_result,
+        }
+
+        if task in result_handlers:
+            await result_handlers[task](
                 update, result, context.user_data["task_message"]
             )
         else:
@@ -151,7 +113,6 @@ async def photo_handler(update: Update, context: CallbackContext):
                 update, result, context.user_data["task_message"]
             )
 
-        # Cleanup and reset state
         await utils.cleanup_operation(update, context)
         await keyboards.send_main_menu(update, context)
 
@@ -164,17 +125,16 @@ async def photo_handler(update: Update, context: CallbackContext):
 async def cancel_handler(update: Update, context: CallbackContext):
     """Handle operation cancellation"""
     await utils.cleanup_operation(update, context)
-    await update.message.reply_text("❌ Operation cancelled.")
+    await update.message.reply_text(Strings.OPERATION_CANCELLED)
     await keyboards.send_main_menu(update, context)
 
 
 async def handle_error(update: Update, context: CallbackContext):
     """Centralized error handling"""
-    error_msg = "⚠️ An error occurred. Please try again."
     if update.message:
-        await update.message.reply_text(error_msg)
+        await update.message.reply_text(Strings.GENERIC_ERROR)
     elif update.callback_query:
-        await update.callback_query.message.reply_text(error_msg)
+        await update.callback_query.message.reply_text(Strings.GENERIC_ERROR)
 
 
 def register_handlers(app):
@@ -183,6 +143,4 @@ def register_handlers(app):
     app.add_handler(CommandHandler("cancel", cancel_handler))
     app.add_handler(CallbackQueryHandler(button_handler))
     app.add_handler(MessageHandler(filters.PHOTO, photo_handler))
-
-    # Error handler
     app.add_error_handler(lambda update, context: handle_error(update, context))

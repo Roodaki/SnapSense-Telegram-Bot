@@ -1,43 +1,27 @@
-import os
 import asyncio
 from pathlib import Path
 from typing import Dict, Any
 from nudenet import NudeDetector
+from bot.strings import Strings
 
 
 def initialize_detector() -> NudeDetector:
-    """Initialize NudeNet detector once during startup"""
+    """Initialize NudeNet detector with error handling"""
     try:
         return NudeDetector()
     except Exception as e:
-        raise RuntimeError(f"Nudity detector initialization failed: {e}") from e
+        raise RuntimeError(Strings.MODEL_INIT_ERROR.format("nudity detection")) from e
 
 
 async def process_image(
     original_path: str, output_folder: str, image_id: str, detector: NudeDetector
 ) -> Dict[str, Any]:
-    """Process image for nudity detection and censorship"""
+    """Process image for nudity detection"""
     try:
         detection_folder = Path(output_folder) / "nudity_detection"
         detection_folder.mkdir(exist_ok=True)
-
-        # Generate output paths
         censored_path = detection_folder / f"censored_{image_id}.jpg"
 
-        # Define classes to censor
-        censor_classes = [
-            "BUTTOCKS_EXPOSED",
-            "FEMALE_BREAST_EXPOSED",
-            "FEMALE_GENITALIA_EXPOSED",
-            "MALE_BREAST_EXPOSED",
-            "ANUS_EXPOSED",
-            "FEET_EXPOSED",
-            "ARMPITS_EXPOSED",
-            "BELLY_EXPOSED",
-            "MALE_GENITALIA_EXPOSED",
-        ]
-
-        # Run detection and censorship in executor
         loop = asyncio.get_event_loop()
         detections = await loop.run_in_executor(
             None, lambda: detector.detect(original_path)
@@ -46,24 +30,23 @@ async def process_image(
         await loop.run_in_executor(
             None,
             lambda: detector.censor(
-                original_path, output_path=str(censored_path), classes=censor_classes
+                original_path,
+                output_path=str(censored_path),
+                classes=Strings.NUDITY_CLASSES,
             ),
         )
 
-        # Format detection summary
         detected_classes = {d["class"] for d in detections}
         detection_summary = (
-            "🚫 Detected sensitive content:\n"
-            + "\n".join(f"• {cls}" for cls in detected_classes)
+            Strings.NUDITY_DETECTED.format("\n• ".join(detected_classes))
             if detected_classes
-            else "✅ No sensitive content detected"
+            else Strings.NO_NUDITY
         )
 
         return {
             "image_path": str(censored_path),
             "detection_summary": detection_summary,
-            "model_name": "NudeNet v2.0",
+            "model_name": Strings.MODEL_NAMES["nudity_detection"],
         }
-
     except Exception as e:
-        raise RuntimeError(f"Nudity processing failed: {e}") from e
+        raise RuntimeError(Strings.PROCESSING_ERROR.format("nudity detection")) from e
