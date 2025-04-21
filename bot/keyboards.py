@@ -31,7 +31,6 @@ def main_menu():
                     "🎭 Background Removal", callback_data="background_removal"
                 )
             ],
-            [InlineKeyboardButton("ℹ️ Help", callback_data="help")],
         ]
     )
 
