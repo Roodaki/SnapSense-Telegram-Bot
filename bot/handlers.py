@@ -70,6 +70,7 @@ async def photo_handler(update: Update, context: CallbackContext):
         # Download photo
         photo_file = await update.message.photo[-1].get_file()
         image_id = str(update.message.message_id)
+        context.user_data["image_id"] = image_id
         image_folder = utils.create_image_folder(image_id)
         original_path = os.path.join(image_folder, f"original_{image_id}.jpg")
         await photo_file.download_to_drive(original_path)

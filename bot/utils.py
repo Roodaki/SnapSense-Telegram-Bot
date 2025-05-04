@@ -126,10 +126,24 @@ async def send_text_result(update: Update, result: dict, task_name: str):
         await update.message.reply_text(Strings.GENERIC_ERROR)
 
 
+# utils.py (partial update)
 async def cleanup_operation(update: Update, context: CallbackContext):
     """Cleanup resources and user state"""
     try:
         await delete_prev_messages(update, context)
+
+        # Delete associated image folder
+        image_id = context.user_data.pop("image_id", None)
+        if image_id:
+            image_folder = os.path.join("database", image_id)
+            if os.path.exists(image_folder):
+                try:
+                    shutil.rmtree(image_folder)
+                    logger.info(f"Deleted image folder: {image_folder}")
+                except Exception as e:
+                    logger.error(f"Error deleting image folder: {e}")
+
+        # Clear task data
         context.user_data.pop("task", None)
         context.user_data.pop("task_message", None)
     except Exception as e:
