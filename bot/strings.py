@@ -12,6 +12,7 @@ class Strings:
         "text_extraction": "Tesseract OCR",
         "background_removal": "Rembg",
         "emotion_recognition": "DeepFace Emotion",
+        "image_segmentation": "SAM (Segment Anything)",
     }
 
     NUDITY_CLASSES = [
@@ -58,6 +59,11 @@ class Strings:
             "background_removal",
             "Background Removal | Rembg",
         ),
+        "image_segmentation": (
+            "🔲 Image Segmentation",
+            "image_segmentation",
+            "Image Segmentation | SAM",
+        ),
     }
 
     # ======================
@@ -93,6 +99,9 @@ class Strings:
     # Nudity Detection
     NUDITY_DETECTED = "🚫 Detected sensitive content:\n• {}"
     NO_NUDITY = "✅ No sensitive content detected"
+
+    # Image Segmentation
+    SEGMENTATION_SUMMARY = "Detected {} distinct segments"
 
     # ======================
     # Error Messages

@@ -5,6 +5,7 @@ from telegram.ext import Application
 from bot import handlers, utils
 from models.object_detection import object_detection
 from models.nudity_detection import nudity_detection
+from models.image_segmentation import image_segmentation
 
 # Initialize logging
 logging.basicConfig(
@@ -27,6 +28,7 @@ def main():
         # Initialize models
         object_model = object_detection.initialize_model()
         nudity_detector = nudity_detection.initialize_detector()
+        segmentation_model = image_segmentation.initialize_model()
 
         # Create application
         app = (
@@ -34,8 +36,13 @@ def main():
         )
 
         # Store models
-        app.bot_data["object_detection"] = object_model
-        app.bot_data["nudity_detection"] = nudity_detector
+        app.bot_data.update(
+            {
+                "object_detection": object_model,
+                "nudity_detection": nudity_detector,
+                "image_segmentation": segmentation_model,
+            }
+        )
 
         handlers.register_handlers(app)
 

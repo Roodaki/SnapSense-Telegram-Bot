@@ -178,3 +178,4 @@ database/
 
 # Models
 models/object_detection/yolo11x.pt
+models/image_segmentation/sam_vit_h_4b8939.pth

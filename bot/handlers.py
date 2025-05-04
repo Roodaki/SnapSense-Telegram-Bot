@@ -15,6 +15,7 @@ from models.nudity_detection import nudity_detection
 from models.text_extraction import text_extraction
 from models.background_removal import background_removal
 from models.emotion_recognition import emotion_recognition
+from models.image_segmentation import image_segmentation
 
 
 async def start_handler(update: Update, context: CallbackContext):
@@ -79,6 +80,10 @@ async def photo_handler(update: Update, context: CallbackContext):
         model_map = {
             "object_detection": (object_detection.process_image, "object_detection"),
             "nudity_detection": (nudity_detection.process_image, "nudity_detection"),
+            "image_segmentation": (
+                image_segmentation.process_image,
+                "image_segmentation",
+            ),
         }
 
         if task in model_map:
