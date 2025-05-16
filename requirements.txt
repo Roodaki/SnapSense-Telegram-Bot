@@ -1,0 +1,12 @@
+python-telegram-bot
+PyYAML
+python-dotenv
+ultralytics
+numpy
+opencv-python
+Pillow
+rembg[gpu]
+deepface
+nudenet
+segment-anything
+pytesseract
