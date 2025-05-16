@@ -1,4 +1,3 @@
-# strings.py
 """Centralized string management for the Telegram bot"""
 
 
@@ -7,8 +6,8 @@ class Strings:
     # Application Constants
     # ======================
     MODEL_NAMES = {
-        "object_detection": "YOLOv11x",
-        "nudity_detection": "NudeNet v2.0",
+        "object_detection": "YOLO",
+        "nudity_detection": "NudeNet",
         "text_extraction": "Tesseract OCR",
         "background_removal": "Rembg",
         "emotion_recognition": "DeepFace Emotion",
@@ -20,51 +19,65 @@ class Strings:
     # ======================
     # User Interaction
     # ======================
-    START_MESSAGE = "📸 Welcome to SnapSense! Choose an option below:"
+    START_MESSAGE = "👋 Welcome to SnapSense Bot!\n\n📸 I can help you analyze images using various AI models.\n\n👇 Choose an option to get started:"
+
     COMMANDS = [("start", "Start the bot"), ("cancel", "Cancel current operation")]
+
+    MAIN_MENU_HEADER = "📸 *SnapSense Menu*\n\n👇 Select an analysis option:"
 
     MENU_ITEMS = {
         "object_detection": (
-            "🔍 Object Detection",
+            "🔎 Detect Objects",
             "object_detection",
-            "Object Detection | YOLOv11x",
+            "Object Detection",
         ),
         "emotion_recognition": (
-            "😃 Emotion Recognition",
+            "😊 Analyze Emotions",
             "emotion_recognition",
-            "Emotion Recognition | DeepFace",
+            "Emotion Recognition",
         ),
         "nudity_detection": (
-            "🚫 Nudity Detection",
+            "🔞 Check for Sensitive Content",
             "nudity_detection",
-            "Nudity Detection | NudeNet v2.0",
+            "Nudity Detection",
         ),
         "text_extraction": (
-            "📝 Text Extraction",
+            "📝 Extract Text (OCR)",
             "text_extraction",
-            "Text Extraction | Tesseract OCR",
+            "Text Extraction",
         ),
         "background_removal": (
-            "🎭 Background Removal",
+            "✂️ Remove Background",
             "background_removal",
-            "Background Removal | Rembg",
+            "Background Removal",
         ),
         "image_segmentation": (
-            "🔲 Image Segmentation",
+            "🧩 Segment Image",
             "image_segmentation",
-            "Image Segmentation | SAM",
+            "Image Segmentation",
         ),
     }
 
     # ======================
     # System Messages
     # ======================
-    GENERIC_ERROR = "⚠️ An error occurred. Please try again."
-    OPERATION_CANCELLED = "❌ Operation cancelled."
-    PROCESSING = "⏳ Processing your photo..."
-    TASK_SELECTION = "🎯 You selected {}. Please send a photo to proceed."
-    INVALID_TASK_STATE = "⚠️ Please select a task from the menu first using /start."
-    FILE_ERROR = "⚠️ File operation failed. Please try again."
+    GENERIC_ERROR = (
+        "❌ Oops! Something went wrong.\n\nPlease use /start to begin a new task."
+    )
+    OPERATION_CANCELLED = (
+        "❌ Operation cancelled.\n\n🤔 What would you like to do next?"
+    )
+    PROCESSING = "✅ Got it!\n\n⏳ Processing your photo now..."
+
+    TASK_SELECTION = (
+        "✅ Task selected: {}.\n\n👇 Now, please send me the photo you want to analyze."
+    )
+
+    INVALID_TASK_STATE = "👋 Hey there!\n\n🤔 It looks like you sent a photo without selecting a task first.\n\nPlease use /start to choose an option from the menu."
+    FILE_ERROR = "⚠️ A file error occurred 📂, possibly during model loading."
+    FILE_OPERATION_ERROR = (
+        "⚠️ Failed to perform a file operation 💾 (e.g., save or delete)."
+    )
 
     # ======================
     # Result Templates
@@ -84,7 +97,7 @@ class Strings:
     EMOTION_FORMAT = "*Face {}:*\n🎭 Dominant Emotion: {}\n```\n{}\n```\n\n"
 
     # Text Extraction
-    TEXT_RESULT = "📝 *{} Result*\n\n" "```\n{}\n```\n\n" "🧠 *OCR Engine:* {}"
+    TEXT_RESULT = "📝 *{} Result*\n\n" "🧠 *Model:* {}\n\n" "```\n{}\n```\n\n"
 
     # Nudity Detection
     NUDITY_DETECTED = "🚫 Detected sensitive content:\n• {}"
@@ -94,17 +107,16 @@ class Strings:
     SEGMENTATION_SUMMARY = "Detected {} distinct segments"
 
     # ======================
-    # Error Messages
+    # Specific Errors/Messages within Results
     # ======================
-    MODEL_INIT_ERROR = "❌ {} model initialization failed"
-    PROCESSING_ERROR = "❌ Error processing {}"
-    RESULT_FORMAT_ERROR = "❌ Error formatting detection results"
+    MODEL_INIT_ERROR = "❌ {} model initialization failed 😟"
+    PROCESSING_ERROR = "❌ Error processing {} 😥"
+    RESULT_FORMAT_ERROR = "❌ Error formatting detection results 💔"
     OBJECT_DETECTION_LINE = "🔹 {}: {}"
-    NO_OBJECTS = "No objects detected."
-    NO_TEXT = "No text could be extracted"
-    INVALID_IMAGE = "Invalid image file"
-    MISSING_DEPENDENCY = "Required component not found: {}"
-    FILE_OPERATION_ERROR = "File operation failed"
+    NO_OBJECTS = "👁️‍🗨️ No objects detected."
+    NO_TEXT = "❌📄 No text could be extracted."
+    INVALID_IMAGE = "⚠️ Invalid image file 🖼️."
+    MISSING_DEPENDENCY = "⚠️ Required component not found: {} 🛠️."
 
     # ======================
     # Formatting Helpers

@@ -13,7 +13,8 @@ def main_menu():
 
 async def send_main_menu(update: Update, context: CallbackContext):
     reply_markup = main_menu()
-    message_text = "📸 *SnapSense Menu*\nSelect an analysis option:"
+    # Use the new MAIN_MENU_HEADER constant from Strings
+    message_text = Strings.MAIN_MENU_HEADER
 
     try:
         if update.callback_query:
@@ -25,6 +26,7 @@ async def send_main_menu(update: Update, context: CallbackContext):
                 message_text, reply_markup=reply_markup, parse_mode="MarkdownV2"
             )
     except Exception:
+        # Fallback in case edit fails (e.g., message too old)
         await update.message.reply_text(
             message_text, reply_markup=reply_markup, parse_mode="MarkdownV2"
         )

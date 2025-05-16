@@ -106,7 +106,8 @@ async def send_text_result(update: Update, result: dict, task_name: str):
         safe_task = escape_markdown(task_name, version=2)
         safe_model = escape_markdown(result.get("model_name", "Unknown"), version=2)
 
-        message = Strings.TEXT_RESULT.format(safe_task, safe_text, safe_model)
+        # Changed the order of arguments to match the new template order
+        message = Strings.TEXT_RESULT.format(safe_task, safe_model, safe_text)
 
         if len(message) > 4096:
             message = message[:4000] + "\n... (truncated)"
