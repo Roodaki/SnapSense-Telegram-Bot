@@ -4,7 +4,6 @@ from bot.strings import Strings
 
 
 def main_menu():
-    """Generate main menu keyboard from centralized strings"""
     buttons = [
         [InlineKeyboardButton(text, callback_data=cb_data)]
         for text, cb_data, _ in Strings.MENU_ITEMS.values()
@@ -13,7 +12,6 @@ def main_menu():
 
 
 async def send_main_menu(update: Update, context: CallbackContext):
-    """Send or update to main menu using centralized strings"""
     reply_markup = main_menu()
     message_text = "📸 *SnapSense Menu*\nSelect an analysis option:"
 

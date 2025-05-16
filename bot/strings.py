@@ -15,17 +15,7 @@ class Strings:
         "image_segmentation": "SAM (Segment Anything)",
     }
 
-    NUDITY_CLASSES = [
-        "BUTTOCKS_EXPOSED",
-        "FEMALE_BREAST_EXPOSED",
-        "FEMALE_GENITALIA_EXPOSED",
-        "MALE_BREAST_EXPOSED",
-        "ANUS_EXPOSED",
-        "FEET_EXPOSED",
-        "ARMPITS_EXPOSED",
-        "BELLY_EXPOSED",
-        "MALE_GENITALIA_EXPOSED",
-    ]
+    # NUDITY_CLASSES moved to config.yaml
 
     # ======================
     # User Interaction

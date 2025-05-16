@@ -8,20 +8,23 @@ from ultralytics import YOLO
 from bot.strings import Strings
 
 
-def initialize_model() -> Dict[str, Any]:
-    """Initialize YOLO model with centralized configuration"""
+def initialize_model(config: Dict[str, Any]) -> Dict[str, Any]:
     try:
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        model_path = Path("./models/object_detection/yolo11x.pt")
+        model_path = Path(config["model_path"])
 
         if not model_path.exists():
             raise FileNotFoundError(Strings.FILE_ERROR)
 
+        device_str = config.get(
+            "preferred_device", "cuda" if torch.cuda.is_available() else "cpu"
+        )
+        half_precision = config.get("half_precision", device_str == "cuda")
+
         model = YOLO(model_path)
         return {
             "model": model,
-            "device": device,
-            "half": device == "cuda",
+            "device": device_str,
+            "half": half_precision,
             "model_name": Strings.MODEL_NAMES["object_detection"],
         }
     except Exception as e:
@@ -29,9 +32,12 @@ def initialize_model() -> Dict[str, Any]:
 
 
 async def process_image(
-    original_path: str, output_folder: str, image_id: str, model_data: Dict[str, Any]
+    original_path: str,
+    output_folder: str,
+    image_id: str,
+    model_data: Dict[str, Any],
+    config: Dict[str, Any],
 ) -> Dict[str, Any]:
-    """Process image with YOLO model"""
     try:
         detection_folder = Path(output_folder) / "object_detection"
         detection_folder.mkdir(exist_ok=True)
@@ -41,12 +47,12 @@ async def process_image(
             None,
             lambda: model_data["model"](
                 original_path,
-                conf=0.3,
-                iou=0.4,
-                augment=True,
+                conf=config["conf"],
+                iou=config["iou"],
+                augment=config["augment"],
                 device=model_data["device"],
                 half=model_data["half"],
-                save=True,
+                save=config["save_result"],
                 project=str(output_folder),
                 name="object_detection",
                 exist_ok=True,
@@ -59,7 +65,6 @@ async def process_image(
 
 
 async def _format_results(result, model_data: Dict[str, Any]) -> Dict[str, Any]:
-    """Format detection results using centralized strings"""
     try:
         class_counts = Counter(result.names[int(cls)] for cls in result.boxes.cls)
         detection_lines = [
@@ -71,7 +76,7 @@ async def _format_results(result, model_data: Dict[str, Any]) -> Dict[str, Any]:
         )
 
         speed = result.speed
-        speed_summary = Strings.SPEED_STATS.format(
+        speed_summary = Strings.format_speed_stats(
             preprocess=speed["preprocess"],
             inference=speed["inference"],
             postprocess=speed["postprocess"],

@@ -8,15 +8,16 @@ from segment_anything import sam_model_registry, SamAutomaticMaskGenerator
 from bot.strings import Strings
 
 
-def initialize_model() -> SamAutomaticMaskGenerator:
-    """Initialize SAM model with centralized configuration"""
+def initialize_model(config: Dict[str, Any]) -> SamAutomaticMaskGenerator:
     try:
-        CHECKPOINT_PATH = "./models/image_segmentation/sam_vit_h_4b8939.pth"
-        MODEL_TYPE = "vit_h"
-        DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+        checkpoint_path = config["checkpoint_path"]
+        model_type = config["model_type"]
+        device = config.get(
+            "preferred_device", "cuda" if torch.cuda.is_available() else "cpu"
+        )
 
-        sam = sam_model_registry[MODEL_TYPE](checkpoint=CHECKPOINT_PATH)
-        sam.to(device=DEVICE)
+        sam = sam_model_registry[model_type](checkpoint=checkpoint_path)
+        sam.to(device=device)
 
         return SamAutomaticMaskGenerator(sam)
     except Exception as e:
@@ -28,8 +29,8 @@ async def process_image(
     output_folder: str,
     image_id: str,
     mask_generator: SamAutomaticMaskGenerator,
+    config: Dict[str, Any],
 ) -> Dict[str, Any]:
-    """Process image for segmentation"""
     try:
         seg_folder = Path(output_folder) / "image_segmentation"
         seg_folder.mkdir(exist_ok=True)
@@ -37,24 +38,20 @@ async def process_image(
 
         loop = asyncio.get_event_loop()
 
-        # Read and process image
         image_bgr = await loop.run_in_executor(None, lambda: cv2.imread(original_path))
         image_rgb = await loop.run_in_executor(
             None, lambda: cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
         )
 
-        # Generate masks
         masks = await loop.run_in_executor(
             None, lambda: mask_generator.generate(image_rgb)
         )
 
-        # Create visualization
         segmentation_image = np.zeros(image_rgb.shape, dtype=np.uint8)
         for mask in masks:
             color = np.random.randint(0, 256, size=3)
             segmentation_image[mask["segmentation"]] = color
 
-        # Save result
         await loop.run_in_executor(
             None,
             lambda: cv2.imwrite(
@@ -65,7 +62,7 @@ async def process_image(
         return {
             "image_path": str(output_path),
             "model_name": Strings.MODEL_NAMES["image_segmentation"],
-            "detection_summary": f"Detected {len(masks)} distinct segments",
+            "detection_summary": Strings.SEGMENTATION_SUMMARY.format(len(masks)),
         }
     except Exception as e:
         raise RuntimeError(Strings.PROCESSING_ERROR.format("image segmentation")) from e

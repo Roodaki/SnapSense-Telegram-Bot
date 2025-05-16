@@ -6,7 +6,6 @@ from bot.strings import Strings
 
 
 def initialize_detector() -> NudeDetector:
-    """Initialize NudeNet detector with error handling"""
     try:
         return NudeDetector()
     except Exception as e:
@@ -14,13 +13,17 @@ def initialize_detector() -> NudeDetector:
 
 
 async def process_image(
-    original_path: str, output_folder: str, image_id: str, detector: NudeDetector
+    original_path: str,
+    output_folder: str,
+    image_id: str,
+    detector: NudeDetector,
+    config: Dict[str, Any],
 ) -> Dict[str, Any]:
-    """Process image for nudity detection"""
     try:
         detection_folder = Path(output_folder) / "nudity_detection"
         detection_folder.mkdir(exist_ok=True)
         censored_path = detection_folder / f"censored_{image_id}.jpg"
+        nudity_classes = config["nudity_classes"]
 
         loop = asyncio.get_event_loop()
         detections = await loop.run_in_executor(
@@ -32,11 +35,13 @@ async def process_image(
             lambda: detector.censor(
                 original_path,
                 output_path=str(censored_path),
-                classes=Strings.NUDITY_CLASSES,
+                classes=nudity_classes,
             ),
         )
 
-        detected_classes = {d["class"] for d in detections}
+        detected_classes = {
+            d["class"] for d in detections if d["class"] in nudity_classes
+        }
         detection_summary = (
             Strings.NUDITY_DETECTED.format("\n• ".join(detected_classes))
             if detected_classes

@@ -9,26 +9,25 @@ from bot.strings import Strings
 logger = logging.getLogger(__name__)
 
 
-def clean_database():
-    """Initialize clean database folder"""
+def clean_database(config):
+    db_dir = config["app"]["database_dir"]
     try:
-        if os.path.exists("database"):
-            shutil.rmtree("database")
-        os.makedirs("database", exist_ok=True)
+        if os.path.exists(db_dir):
+            shutil.rmtree(db_dir)
+        os.makedirs(db_dir, exist_ok=True)
     except Exception as e:
         logger.error(f"Database cleanup failed: {e}")
         raise
 
 
-def create_image_folder(image_id: str) -> str:
-    """Create unique image processing folder"""
-    image_folder = os.path.join("database", image_id)
+def create_image_folder(image_id: str, config) -> str:
+    db_dir = config["app"]["database_dir"]
+    image_folder = os.path.join(db_dir, image_id)
     os.makedirs(image_folder, exist_ok=True)
     return image_folder
 
 
 async def delete_prev_messages(update: Update, context: CallbackContext):
-    """Delete previous bot messages"""
     try:
         if prev_msg_id := context.user_data.get("prev_message"):
             await context.bot.delete_message(
@@ -40,7 +39,6 @@ async def delete_prev_messages(update: Update, context: CallbackContext):
 
 
 async def send_processed_result(update: Update, result: dict, task_name: str):
-    """Send formatted processing result"""
     try:
         safe_task = escape_markdown(task_name, version=2)
         safe_model = escape_markdown(result.get("model_name", "Unknown"), version=2)
@@ -70,7 +68,6 @@ async def send_processed_result(update: Update, result: dict, task_name: str):
 
 
 async def send_emotion_result(update: Update, result: dict, task_name: str):
-    """Send formatted emotion analysis result"""
     try:
         safe_task = escape_markdown(task_name, version=2)
         faces = result["faces_detected"]
@@ -79,7 +76,7 @@ async def send_emotion_result(update: Update, result: dict, task_name: str):
         if faces == 0:
             base_msg += "No faces detected in the image"
         else:
-            base_msg += Strings.FACES_DETECTED.format(faces, "s" if faces > 1 else "")
+            base_msg += Strings.FACES_DETECTED.format(faces, "" if faces == 1 else "s")
 
             for idx, emotion in enumerate(result["emotions"], 1):
                 scores = "\n".join(
@@ -103,9 +100,8 @@ async def send_emotion_result(update: Update, result: dict, task_name: str):
 
 
 async def send_text_result(update: Update, result: dict, task_name: str):
-    """Send formatted text extraction result"""
     try:
-        text = result.get("text", "No text could be extracted")
+        text = result.get("text", Strings.NO_TEXT)
         safe_text = escape_markdown(text, version=2)
         safe_task = escape_markdown(task_name, version=2)
         safe_model = escape_markdown(result.get("model_name", "Unknown"), version=2)
@@ -126,16 +122,15 @@ async def send_text_result(update: Update, result: dict, task_name: str):
         await update.message.reply_text(Strings.GENERIC_ERROR)
 
 
-# utils.py (partial update)
 async def cleanup_operation(update: Update, context: CallbackContext):
-    """Cleanup resources and user state"""
     try:
         await delete_prev_messages(update, context)
 
-        # Delete associated image folder
         image_id = context.user_data.pop("image_id", None)
         if image_id:
-            image_folder = os.path.join("database", image_id)
+            config = context.bot_data["config"]
+            db_dir = config["app"]["database_dir"]
+            image_folder = os.path.join(db_dir, image_id)
             if os.path.exists(image_folder):
                 try:
                     shutil.rmtree(image_folder)
@@ -143,7 +138,6 @@ async def cleanup_operation(update: Update, context: CallbackContext):
                 except Exception as e:
                     logger.error(f"Error deleting image folder: {e}")
 
-        # Clear task data
         context.user_data.pop("task", None)
         context.user_data.pop("task_message", None)
     except Exception as e:

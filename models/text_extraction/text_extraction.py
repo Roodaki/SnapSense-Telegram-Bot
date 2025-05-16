@@ -9,7 +9,6 @@ from bot.strings import Strings
 async def process_image(
     original_path: str, output_folder: str, image_id: str
 ) -> Dict[str, Any]:
-    """Process image for text extraction"""
     try:
         text_folder = Path(output_folder) / "text_extraction"
         text_folder.mkdir(exist_ok=True)
@@ -31,7 +30,6 @@ async def process_image(
 
 
 def _extract_text(image_path: str) -> str:
-    """Perform OCR with centralized error handling"""
     try:
         with Image.open(image_path) as img:
             return pytesseract.image_to_string(img)

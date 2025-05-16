@@ -6,9 +6,8 @@ from bot.strings import Strings
 
 
 async def process_image(
-    original_path: str, output_folder: str, image_id: str
+    original_path: str, output_folder: str, image_id: str, config: Dict[str, Any]
 ) -> Dict[str, Any]:
-    """Process image for emotion analysis"""
     try:
         emotion_folder = Path(output_folder) / "emotion_recognition"
         emotion_folder.mkdir(exist_ok=True)
@@ -18,10 +17,10 @@ async def process_image(
             None,
             lambda: DeepFace.analyze(
                 img_path=original_path,
-                actions=["emotion"],
-                detector_backend="opencv",
-                enforce_detection=True,
-                silent=True,
+                actions=config["emotion_actions"],
+                detector_backend=config["emotion_detector_backend"],
+                enforce_detection=config["emotion_enforce_detection"],
+                silent=config["emotion_silent"],
             ),
         )
 

@@ -1,0 +1,39 @@
+# Application Configuration
+app:
+  database_dir: "database"
+  drop_pending_updates: true
+
+# Model Specific Configurations
+models:
+  object_detection:
+    model_path: "./models/object_detection/yolo11x.pt"
+    conf: 0.3 # Confidence threshold
+    iou: 0.4 # IoU threshold
+    augment: true # Enable image augmentation during inference
+    save_result: true # Save the output image
+    preferred_device: "cuda"
+    half_precision: true
+
+  nudity_detection:
+    # List of nudity classes to detect/censor
+    nudity_classes:
+      - BUTTOCKS_EXPOSED
+      - FEMALE_BREAST_EXPOSED
+      - FEMALE_GENITALIA_EXPOSED
+      - MALE_BREAST_EXPOSED
+      - ANUS_EXPOSED
+      - FEET_EXPOSED
+      - ARMPITS_EXPOSED
+      - BELLY_EXPOSED
+      - MALE_GENITALIA_EXPOSED
+
+  emotion_recognition:
+    emotion_actions: ["emotion"] # DeepFace actions to perform
+    emotion_detector_backend: "opencv" # Face detector backend
+    emotion_enforce_detection: true # Enforce face detection
+    emotion_silent: true # Suppress DeepFace output
+
+  image_segmentation:
+    checkpoint_path: "./models/image_segmentation/sam_vit_h_4b8939.pth"
+    model_type: "vit_h" # SAM model type (e.g., 'vit_h', 'vit_l', 'vit_b')
+    preferred_device: "cuda"

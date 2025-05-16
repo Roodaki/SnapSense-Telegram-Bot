@@ -9,7 +9,6 @@ from bot.strings import Strings
 async def process_image(
     original_path: str, output_folder: str, image_id: str
 ) -> Dict[str, Any]:
-    """Process image for background removal"""
     try:
         bgremoval_folder = Path(output_folder) / "background_removal"
         bgremoval_folder.mkdir(exist_ok=True)
@@ -27,7 +26,6 @@ async def process_image(
 
 
 def _remove_bg(input_path: str, output_path: Path):
-    """Perform background removal with error handling"""
     try:
         with Image.open(input_path) as img:
             output = remove(img)

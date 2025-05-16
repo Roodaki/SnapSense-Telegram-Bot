@@ -19,7 +19,6 @@ from models.image_segmentation import image_segmentation
 
 
 async def start_handler(update: Update, context: CallbackContext):
-    """Handle /start command with clean state"""
     try:
         context.user_data.clear()
         keyboard = keyboards.main_menu()
@@ -53,7 +52,6 @@ async def button_handler(update: Update, context: CallbackContext):
 
 
 async def photo_handler(update: Update, context: CallbackContext):
-    """Handle photo processing with state management"""
     try:
         if not (task := context.user_data.get("task")):
             await update.message.reply_text(
@@ -68,28 +66,42 @@ async def photo_handler(update: Update, context: CallbackContext):
         )
         context.user_data["prev_message"] = ack_message.message_id
 
-        # Download photo
         photo_file = await update.message.photo[-1].get_file()
         image_id = str(update.message.message_id)
         context.user_data["image_id"] = image_id
-        image_folder = utils.create_image_folder(image_id)
+        config = context.bot_data["config"]
+        image_folder = utils.create_image_folder(image_id, config)
         original_path = os.path.join(image_folder, f"original_{image_id}.jpg")
         await photo_file.download_to_drive(original_path)
 
-        # Process image
-        model_map = {
-            "object_detection": (object_detection.process_image, "object_detection"),
-            "nudity_detection": (nudity_detection.process_image, "nudity_detection"),
-            "image_segmentation": (
-                image_segmentation.process_image,
-                "image_segmentation",
-            ),
-        }
+        config = context.bot_data["config"]  # Access config from bot_data
 
-        if task in model_map:
-            processor, model_key = model_map[task]
-            result = await processor(
-                original_path, image_folder, image_id, context.bot_data[model_key]
+        if task == "object_detection":
+            model_data = context.bot_data["object_detection_model_data"]
+            result = await object_detection.process_image(
+                original_path,
+                image_folder,
+                image_id,
+                model_data,
+                config["models"]["object_detection"],
+            )
+        elif task == "nudity_detection":
+            detector = context.bot_data["nudity_detection_detector"]
+            result = await nudity_detection.process_image(
+                original_path,
+                image_folder,
+                image_id,
+                detector,
+                config["models"]["nudity_detection"],
+            )
+        elif task == "image_segmentation":
+            model = context.bot_data["image_segmentation_model"]
+            result = await image_segmentation.process_image(
+                original_path,
+                image_folder,
+                image_id,
+                model,
+                config["models"]["image_segmentation"],
             )
         elif task == "text_extraction":
             result = await text_extraction.process_image(
@@ -101,10 +113,12 @@ async def photo_handler(update: Update, context: CallbackContext):
             )
         elif task == "emotion_recognition":
             result = await emotion_recognition.process_image(
-                original_path, image_folder, image_id
+                original_path,
+                image_folder,
+                image_id,
+                config["models"]["emotion_recognition"],
             )
 
-        # Handle results
         result_handlers = {
             "text_extraction": utils.send_text_result,
             "emotion_recognition": utils.send_emotion_result,
@@ -129,14 +143,12 @@ async def photo_handler(update: Update, context: CallbackContext):
 
 
 async def cancel_handler(update: Update, context: CallbackContext):
-    """Handle operation cancellation"""
     await utils.cleanup_operation(update, context)
     await update.message.reply_text(Strings.OPERATION_CANCELLED)
     await keyboards.send_main_menu(update, context)
 
 
 async def handle_error(update: Update, context: CallbackContext):
-    """Centralized error handling"""
     if update.message:
         await update.message.reply_text(Strings.GENERIC_ERROR)
     elif update.callback_query:
@@ -144,7 +156,6 @@ async def handle_error(update: Update, context: CallbackContext):
 
 
 def register_handlers(app):
-    """Register all handlers with error handling"""
     app.add_handler(CommandHandler("start", start_handler))
     app.add_handler(CommandHandler("cancel", cancel_handler))
     app.add_handler(CallbackQueryHandler(button_handler))
