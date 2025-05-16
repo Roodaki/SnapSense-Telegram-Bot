@@ -14,7 +14,8 @@ class Strings:
         "image_segmentation": "SAM (Segment Anything)",
     }
 
-    # NUDITY_CLASSES moved to config.yaml
+    BOT_ID = "@SnapSenseBot"
+    BOT_ID_SUFFIX = "\n\n🆔 {}"
 
     # ======================
     # User Interaction
@@ -104,7 +105,7 @@ class Strings:
     NO_NUDITY = "✅ No sensitive content detected"
 
     # Image Segmentation
-    SEGMENTATION_SUMMARY = "Detected {} distinct segments"
+    SEGMENTATION_SUMMARY = "🔍 Detected {} distinct segments"
 
     # ======================
     # Specific Errors/Messages within Results

@@ -54,6 +54,9 @@ async def send_processed_result(update: Update, result: dict, task_name: str):
             safe_speed = escape_markdown(result["speed_summary"], version=2)
             base_caption += f"\n\n{safe_speed}"
 
+        # Add bot ID suffix
+        base_caption += Strings.BOT_ID_SUFFIX.format(Strings.BOT_ID)
+
         with open(result["image_path"], "rb") as photo_file:
             await update.message.reply_photo(
                 photo=photo_file,
@@ -88,6 +91,9 @@ async def send_emotion_result(update: Update, result: dict, task_name: str):
                     escape_markdown(scores, version=2),
                 )
 
+        # Add bot ID suffix
+        base_msg += Strings.BOT_ID_SUFFIX.format(Strings.BOT_ID)
+
         await update.message.reply_text(
             base_msg,
             parse_mode="MarkdownV2",
@@ -106,11 +112,13 @@ async def send_text_result(update: Update, result: dict, task_name: str):
         safe_task = escape_markdown(task_name, version=2)
         safe_model = escape_markdown(result.get("model_name", "Unknown"), version=2)
 
-        # Changed the order of arguments to match the new template order
         message = Strings.TEXT_RESULT.format(safe_task, safe_model, safe_text)
 
         if len(message) > 4096:
             message = message[:4000] + "\n... (truncated)"
+
+        # Add bot ID suffix
+        message += Strings.BOT_ID_SUFFIX.format(Strings.BOT_ID)
 
         await update.message.reply_text(
             message,
